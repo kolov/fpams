@@ -48,24 +48,9 @@ object Ops {
 
 object TwoTickers extends App {
 
-  import Ops._
-
-  //  type IO1[A] = IO[Void, A]
-  //  implicit val frp: Frp[IO1] = ???
-  //  implicit val mio: Monad[IO1] = new Monad[IO1] {
-  //    override def bind[A, B](fa: IO1[A])(f: A => IO1[B]): IO1[B] = fa.flatMap(f)
-  //
-  //    override def point[A](a: => A): IO1[A] = IO.point(a)
-  //  }
-  //
-  //  def run(args: List[String]): IO[Nothing, ExitStatus] =
-  //    new Program[IO1]().myAppLogic.attempt.map(_.fold(_ => 1, _ => 0)).map(ExitStatus.ExitNow(_))
-
   case class Tick(name: String)
 
   class Program[F[_]](implicit val frp: Frp[F], m: Monad[F]) {
-
-    import Ops._
 
     def ticks(interval: Duration, name: String): F[Event[Tick]] = {
       for {
@@ -78,7 +63,7 @@ object TwoTickers extends App {
 
 
     def myAppLogic: F[Unit] = {
-      val sink  =  (t: Tick) => frp.pure(println(s"tick ${t.name}"))
+      val sink = (t: Tick) => frp.pure(println(s"tick ${t.name}"))
 
       val eventA: F[Event[Tick]] = ticks(0.2 second, "a")
       val eventB: F[Event[Tick]] = ticks(0.1 second, "b")
