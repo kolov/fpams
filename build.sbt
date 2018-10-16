@@ -10,7 +10,8 @@ lazy val root = ( project in file(".") ).
     name := "fpams",
     scalacOptions += "-Ypartial-unification",
     libraryDependencies += scalaTest % Test,
-    libraryDependencies ++= Seq(scalaz, zio)
+    libraryDependencies ++= Seq(scalaz, zio),
+    libraryDependencies += "co.fs2" %% "fs2-core" % "1.0.0"
   )
 
 

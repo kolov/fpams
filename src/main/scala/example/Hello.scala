@@ -1,11 +1,12 @@
 package example
 
-import scalaz._, Scalaz._
+import example.types.IO1
+import scalaz.Scalaz._
+import scalaz._
 import scalaz.zio._
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.{Duration, _}
 import scala.language.postfixOps
-import scala.concurrent.duration.Duration
 
 case class Future[+A]()
 
@@ -32,7 +33,7 @@ trait Frp[F[_]] {
 
   def future[A](a: A): F[Future[A]]
 
-  def sinkE[A](sink: Sink[A], value: A): F[Unit]
+  def sinkE[A](sink: Sink[A], event: Event[A]): F[Unit]
 }
 
 object Ops {
@@ -68,9 +69,17 @@ object TwoTickers extends App {
       val eventA: F[Event[Tick]] = ticks(0.2 second, "a")
       val eventB: F[Event[Tick]] = ticks(0.1 second, "b")
       val merged: F[Event[Tick]] = m.bind(eventA)(a => m.bind(eventB)(b => frp.mergeEvents(a, b)))
-      frp.sinkE(sink, merged)
+      merged.map { e => frp.sinkE(sink, e) }
     }
   }
 
+  implicit val frp = FrpIo
+  implicit val m: Monad[IO1] = monadIo
+
+  override def run(args: List[String]): IO[Nothing, TwoTickers.ExitStatus] = {
+    val logic: IO1[Unit] = new Program().myAppLogic
+    val attempted: IO[Nothing, Either[Void, Unit]] = logic.attempt
+    attempted.map(_.fold(_ => 1, _ => 0)).map(ExitStatus.ExitNow(_))
+  }
 }
 
