@@ -20,6 +20,7 @@ trait Future[+A]
 
 trait Reactive[+A] {
   def head: A
+
   def tail: Event[A]
 }
 
@@ -42,9 +43,9 @@ trait Frp[F[_]] {
 
   def future[A](a: => A): F[Future[A]]
 
-  def reactive[A](head: A, tail: => Event[A]) : F[Reactive[A]]
+  def reactive[A](head: A, tail: => Event[A]): F[Reactive[A]]
 
-  def event[A](f: Future[Reactive[A]]) : F[Event[A]]
+  def event[A](f: Future[Reactive[A]]): F[Event[A]]
 
   // consumer of event and behaviours
   type Sink[A] = A => F[Unit]
@@ -73,17 +74,15 @@ object TwoTickers extends App {
 
     def ticks(interval: Duration, name: String): F[Event[Tick]] = {
 
-      val tail: F[Event[Tick]] =  ticks(interval, name).flatMap(e => e.delay(interval))
-
       for {
         head <- frp.pure(Tick(name))
         _ = println("head")
         tail <- m.bind(ticks(interval, name))(e => e.delay(interval))
         _ = println("tail")
-        fr <- frp.reactive(head, tail).flatMap( r => frp.future(r))
-      } yield frp.event(fr)
+        fr <- frp.reactive(head, tail).flatMap(r => frp.future(r))
+        e <- frp.event(fr)
+      } yield e
 
-      tail
     }
 
 
@@ -119,7 +118,7 @@ case class FutureIO[A](io: IO1[(Time, A)]) extends Future[A]
 case class EventIO[A](value: FutureIO[Reactive[A]]) extends Event[A]
 
 object EventIO {
-  def apply[A](f: FutureIO[Reactive[A]]) : EventIO[A] = new EventIO(f)
+  def apply[A](f: FutureIO[Reactive[A]]): EventIO[A] = new EventIO(f)
 }
 
 object FrpIo extends Frp[IO1] {
@@ -138,7 +137,7 @@ object FrpIo extends Frp[IO1] {
     val ea = e.asInstanceOf[EventIO[A]]
     val io: IO1[(Time, Reactive[A])] = ea.value.io.delay(interval)
     val f = FutureIO(io)
-    io.map( i => {
+    io.map(i => {
       EventIO(f)
     })
   }
@@ -163,8 +162,8 @@ object FrpIo extends Frp[IO1] {
   override def reactive[A](head: A, tail: => Event[A]): IO1[Reactive[A]] = ???
 
   override def event[A](f: Future[Reactive[A]]): IO1[Event[A]] = {
-    val e: EventIO[A] =  new EventIO(f.asInstanceOf[FutureIO[Reactive[A]]])
-    val r :IO1[Event[A]] = IO.sync(e)
+    val e: EventIO[A] = new EventIO(f.asInstanceOf[FutureIO[Reactive[A]]])
+    val r: IO1[Event[A]] = IO.sync(e)
     r
   }
 }
@@ -176,6 +175,7 @@ object monadIo extends Monad[IO1] {
   }
 
   override def bind[A, B](fa: IO1[A])(f: A => IO1[B]): IO1[B] = fa.flatMap(f)
+
   override def map[A, B](fa: IO1[A])(f: A => B): IO1[B] = fa.map(f)
 
 }
