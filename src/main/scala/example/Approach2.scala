@@ -136,7 +136,7 @@ object FrpIo extends Frp[IO1] {
   override def delayEvent[A](e: => Event[A], interval: Duration): IO1[Event[A]] = {
     println("delayEvent")
     val ea = e.asInstanceOf[EventIO[A]]
-    val io: IO1[(Time, Reactive[A])] = ??? // ea.value.io.delay(interval)
+    val io: IO1[(Time, Reactive[A])] = ea.value.io.delay(interval)
     val f = FutureIO(io)
     io.map( i => {
       EventIO(f)
